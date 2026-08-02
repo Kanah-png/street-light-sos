@@ -127,7 +127,7 @@ async def dashboard():
     <header>
         <div class="status-dot"></div>
         <div>
-            <h1>🚦 Street Light SOS — Live Dashboard</h1>
+            <h1>🚦 Street Light SOS - Live Dashboard</h1>
             <p>System Status: <strong style="color:{status_color}">{status_text}</strong>
                &nbsp;|&nbsp; Uptime: {uptime or 'N/A'}
                &nbsp;|&nbsp; Auto-refreshes every 5s

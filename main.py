@@ -111,9 +111,9 @@ def main():
                             (config.FRAME_WIDTH - 130, 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 2)
 
-                cv2.imshow("Street Light SOS — Press Q to quit", annotated_frame)
+                cv2.imshow("Street Light SOS - Press Q to quit", annotated_frame)
                 if cv2.waitKey(1) & 0xFF == ord("q"):
-                    print("[Main] Q pressed — shutting down.")
+                    print("[Main] Q pressed - shutting down.")
                     break
 
     except KeyboardInterrupt:
