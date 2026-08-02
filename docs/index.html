@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Street Light SOS — Autonomous Emergency Response System</title>
+    <meta name="description" content="AI-Powered Edge Computing Perception Pipeline for Emergency Detection & Dispatch on Smart Street Infrastructure.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">🚦</span>
+                <span class="logo-text">Street Light <span class="highlight">SOS</span></span>
+                <span class="badge-status"><span class="pulse-dot"></span> LIVE SYSTEM</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#dashboard">Live Dashboard Demo</a>
+                <a href="#architecture">Architecture</a>
+                <a href="#setup">Quick Start</a>
+                <a href="https://github.com/Kanah-png/street-light-sos" target="_blank" class="btn-github">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                    View Code
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-bg-glow"></div>
+        <div class="container hero-grid">
+            <div class="hero-content">
+                <div class="hero-tag">
+                    <span class="sparkle">✨</span> Next-Gen Urban Safety & Vision AI
+                </div>
+                <h1>Smart Emergency <br><span class="gradient-text">Street Light SOS</span> System</h1>
+                <p class="hero-desc">
+                    An edge-optimized computer vision pipeline built into smart streetlights to detect accidents, violence, fires, and medical emergencies in real-time with instant Twilio SOS dispatch.
+                </p>
+                <div class="hero-actions">
+                    <a href="#dashboard" class="btn-primary">Explore Live Simulator</a>
+                    <a href="https://github.com/Kanah-png/street-light-sos" target="_blank" class="btn-secondary">GitHub Repository</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <div class="stat-num">&lt; 500ms</div>
+                        <div class="stat-label">Detection Latency</div>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <div class="stat-num">6 Emergency</div>
+                        <div class="stat-label">AI Categories</div>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat-item">
+                        <div class="stat-num">100% Edge</div>
+                        <div class="stat-label">Jetson & Pi Ready</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Visual Preview -->
+            <div class="hero-preview">
+                <div class="glass-card camera-card">
+                    <div class="camera-header">
+                        <div class="cam-info">
+                            <span class="rec-dot"></span> CAM-01 // NODE_STREET_42
+                        </div>
+                        <div class="cam-fps">FPS: <span id="hero-fps">29.8</span></div>
+                    </div>
+                    <div class="camera-screen" id="camera-screen">
+                        <video id="user-webcam" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0;"></video>
+                        <div class="ai-box bounding-box-accident" style="z-index: 2;">
+                            <span class="box-tag">ROAD_ACCIDENT 94%</span>
+                        </div>
+                        <div class="ai-box bounding-box-person" style="z-index: 2;">
+                            <span class="box-tag">UNCONSCIOUS_PERSON 88%</span>
+                        </div>
+                        <div class="overlay-sos-alert" id="sos-overlay" style="z-index: 3;">
+                            <span class="sos-icon">🚨</span>
+                            <div>
+                                <strong>EMERGENCY DISPATCH TRIGGERED</strong>
+                                <p>SMS & Call Sent to Emergency Responders</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="camera-footer">
+                        <span>Model: YOLOv8 Pose + Object</span>
+                        <button id="btn-trigger-alert" class="btn-alert-trigger">⚡ Simulate Emergency Alert</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Emergency Features -->
+    <section id="features" class="features-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Multi-Scenario Emergency Perception</h2>
+                <p>Equipped with dual YOLO object & pose estimation models tuned for 6 critical urban incidents.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon-wrap red">🚗💥</div>
+                    <h3>Road Accident</h3>
+                    <p>Detects sudden velocity drops and vehicle bounding-box overlaps with high kinetic collision scoring.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap purple">🧘‍♂️</div>
+                    <h3>Unconscious Person</h3>
+                    <p>Tracks torso angles relative to horizontal ground using keypoint pose estimation to find fallen pedestrians.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap pink">🥊</div>
+                    <h3>Physical Assault</h3>
+                    <p>Monitors spatial proximity and rapid keypoint kinetic energy fluctuations indicating physical fights.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap orange">🔥</div>
+                    <h3>Fire & Smoke</h3>
+                    <p>Uses specialized vision classifiers to detect fire and smoke expanding in public street view area.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap amber">🚨</div>
+                    <h3>Forced Dragging / Kidnapping</h3>
+                    <p>Identifies rapid forced dragging motion vectors between human subjects and nearby suspicious vehicles.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon-wrap blue">🚗🚗</div>
+                    <h3>Traffic Stagnation</h3>
+                    <p>Monitors long-term vehicle counts and zero-speed motion vectors to alert control centers of severe gridlocks.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Dashboard Simulation -->
+    <section id="dashboard" class="dashboard-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Real-Time Control Center Dashboard</h2>
+                <p>Interactive simulation of the FastAPI live web monitoring dashboard running on port 8000.</p>
+            </div>
+
+            <div class="dashboard-frame glass-card">
+                <div class="dash-bar">
+                    <div class="dash-status">
+                        <span class="status-indicator online"></span>
+                        <div>
+                            <h3>🚦 Street Light SOS — Control Node</h3>
+                            <p>System: <strong class="text-green">ONLINE</strong> | Node ID: #SL-NORTH-9021 | Auto-Refresh: 5s</p>
+                        </div>
+                    </div>
+                    <div class="dash-controls">
+                        <button id="btn-add-mock-alert" class="btn-sm">+ Add Test Alert</button>
+                    </div>
+                </div>
+
+                <div class="metrics-row">
+                    <div class="metric-card">
+                        <div class="label">Camera Hardware</div>
+                        <div class="value text-green" id="dash-cam-status">✓ ACTIVE</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="label">Processing Speed</div>
+                        <div class="value" id="dash-fps-val">30.0 FPS</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="label">Total Alerts Dispatched</div>
+                        <div class="value text-accent" id="dash-alert-count">14</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="label">YOLOv8 Engine</div>
+                        <div class="value text-green">CUDA / FP16</div>
+                    </div>
+                </div>
+
+                <div class="alerts-table-wrap">
+                    <h3>Recent Dispatched Emergency Incidents</h3>
+                    <table class="alerts-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Incident Category</th>
+                                <th>Confidence</th>
+                                <th>Dispatch Target</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alerts-table-body">
+                            <!-- Populated dynamically by script.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture & Hardware Specs -->
+    <section id="architecture" class="architecture-section">
+        <div class="container grid-2">
+            <div class="arch-info">
+                <h2>Edge Architecture & Tech Stack</h2>
+                <p>Designed to run locally on low-power streetlight embedded hardware without requiring expensive cloud bandwidth for video streams.</p>
+                
+                <ul class="arch-list">
+                    <li>
+                        <strong>Perception Engine:</strong> OpenCV + Ultralytics YOLOv8 for sub-30ms object detection and pose estimation.
+                    </li>
+                    <li>
+                        <strong>Alert Dispatcher:</strong> Integrated Twilio SMS & Voice Calling client paired with custom REST endpoints.
+                    </li>
+                    <li>
+                        <strong>Embedded Hardware:</strong> Designed for NVIDIA Jetson Orin Nano, Raspberry Pi 4/5, or RTSP CCTV feeds.
+                    </li>
+                    <li>
+                        <strong>Live Web Server:</strong> Built with FastAPI + Uvicorn background threads for real-time telemetry.
+                    </li>
+                </ul>
+            </div>
+            <div class="code-preview glass-card">
+                <div class="code-header">
+                    <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                    <span class="code-title">config.py — Alert Channels</span>
+                </div>
+                <pre><code class="language-python"># Alert Dispatch & Communication Settings
+ALERT_CHANNELS = {
+    "REST_API": {
+        "enabled": True,
+        "endpoint_url": "https://api.emergency.local/v1/incidents",
+    },
+    "SMS_TWILIO": {
+        "enabled": True,
+        "to_number": os.getenv("USER_PHONE_NUMBER"),
+        "from_number": "+18005550199"
+    },
+    "MQTT": {
+        "enabled": True,
+        "topic": "streetlights/emergency/alerts"
+    }
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Start Setup -->
+    <section id="setup" class="setup-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>How to Run locally</h2>
+                <p>Clone the repository and launch the full detection system in 3 simple steps.</p>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-num">01</div>
+                    <h3>Clone Repository</h3>
+                    <code>git clone https://github.com/Kanah-png/street-light-sos.git</code>
+                </div>
+                <div class="step-card">
+                    <div class="step-num">02</div>
+                    <h3>Install Dependencies</h3>
+                    <code>pip install -r requirements.txt</code>
+                </div>
+                <div class="step-card">
+                    <div class="step-num">03</div>
+                    <h3>Launch System</h3>
+                    <code>python main.py --source 0</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-content">
+            <p>© 2026 Street Light SOS Project. Built with OpenCV, YOLOv8 & FastAPI.</p>
+            <div class="footer-links">
+                <a href="https://github.com/Kanah-png/street-light-sos" target="_blank">GitHub Repository</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
