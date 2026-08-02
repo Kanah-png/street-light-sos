@@ -36,9 +36,14 @@ ALERT_CONF_THRESHOLD = 0.70           # High confidence minimum to trigger offic
 DETECTION_RULES = {
     "ROAD_ACCIDENT": {
         "enabled": True,
-        "speed_drop_threshold": 25.0,  # Sudden velocity drop (pixels/frame)
-        "bounding_box_overlap": 0.40,  # Overlap ratio between colliding vehicles
-        "min_confidence": 0.75,
+        "speed_drop_threshold": 20.0,       # Sudden velocity drop (pixels/frame)
+        "bounding_box_overlap": 0.25,       # Overlap ratio between colliding vehicles (IoU >= 0.25)
+        "single_vehicle_decel": 30.0,       # Extreme deceleration threshold for single-vehicle barrier/pole impact
+        "rollover_aspect_min": 0.40,        # Bounding box aspect ratio (W/H) minimum anomaly for overturned vehicles
+        "rollover_aspect_max": 2.70,        # Bounding box aspect ratio anomaly threshold
+        "trajectory_angle_shift": 60.0,     # Sharp direction shift angle (degrees) indicating spin-out/collision
+        "pedestrian_collision_dist": 50.0,  # Proximity limit (pixels) for vehicle-pedestrian impact
+        "min_confidence": 0.70,
         "cooldown_seconds": 30
     },
     "TRAFFIC_JAM": {

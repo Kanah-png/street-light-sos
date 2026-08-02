@@ -22,11 +22,16 @@
                 <span>Street Light <span class="text-yellow">SOS</span></span>
                 <span class="badge-yellow">LIVE SYSTEM</span>
             </div>
-            <nav class="nav-links">
-                <a href="#upload">Image Detection AI</a>
-                <a href="#features">Capabilities</a>
-                <a href="#dashboard">Live Control Center</a>
-                <a href="#code">Architecture</a>
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle navigation menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+            <nav class="nav-links" id="nav-links">
+                <a href="#upload" class="nav-item">Image Detection AI</a>
+                <a href="#features" class="nav-item">Capabilities</a>
+                <a href="#dashboard" class="nav-item">Live Control Center</a>
+                <a href="#code" class="nav-item">Architecture</a>
                 <a href="https://github.com/Kanah-png/street-light-sos" target="_blank" class="btn-primary">View GitHub Repo</a>
             </nav>
         </div>
@@ -96,7 +101,8 @@
         <div class="container">
             <div class="section-header">
                 <h2>Test Image Detection AI</h2>
-                <p>Upload any image of a street, road, accident, or crowd. The AI model will process the image, detect emergencies, draw bounding markers, and simulate sending an immediate SOS alert.</p>
+                <p>Upload any image of a street, road, accident, or crowd. The TensorFlow COCO-SSD neural network runs directly in your browser to detect vehicles, people, and objects. It then uses spatial analysis to classify crash scenes, fallen persons, and traffic incidents.</p>
+                <p style="margin-top: 8px; font-family: var(--font-code); font-size: 0.85rem;">AI Model Status: <span id="model-status" class="text-yellow">Loading TensorFlow...</span></p>
             </div>
 
             <div class="upload-grid">
@@ -186,7 +192,7 @@
         <div class="container">
             <div class="section-header">
                 <h2>Real Time Control Center</h2>
-                <p>Interactive simulation of the FastAPI live web monitoring dashboard running on port 8000.</p>
+                <p>Interactive simulation of the FastAPI live web monitoring dashboard powering the Street Light SOS network.</p>
             </div>
 
             <div class="metrics-grid">

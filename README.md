@@ -1,5 +1,7 @@
 # Street Light SOS
 
+🌐 **Live Web AI Demo & Public Portal**: [https://kanah-png.github.io/street-light-sos/](https://kanah-png.github.io/street-light-sos/)
+
 Street Light SOS is an intelligent emergency detection system designed for modern smart cities. By mounting computer vision technology directly onto street lights, the system monitors public roads and sidewalks in real time. When an emergency happens, it automatically alerts response teams so help can arrive as quickly as possible.
 
 ## Why This Matters

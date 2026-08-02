@@ -667,12 +667,179 @@ pre {
     color: var(--colors-primary);
 }
 
-/* Mobile Responsive */
-@media (max-width: 900px) {
-    .hero-grid, .upload-grid, .features-grid, .metrics-grid {
+/* Mobile Navigation Hamburger Button */
+.mobile-menu-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 32px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1100;
+}
+
+.mobile-menu-btn .bar {
+    width: 100%;
+    height: 3px;
+    background-color: var(--colors-on-dark);
+    border-radius: 2px;
+    transition: all 0.3s ease-in-out;
+}
+
+.mobile-menu-btn.active .bar:nth-child(1) {
+    transform: translateY(10.5px) rotate(45deg);
+    background-color: var(--colors-primary);
+}
+
+.mobile-menu-btn.active .bar:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-btn.active .bar:nth-child(3) {
+    transform: translateY(-10.5px) rotate(-45deg);
+    background-color: var(--colors-primary);
+}
+
+/* Comprehensive Mobile & Responsive Media Queries */
+@media (max-width: 1024px) {
+    .container {
+        padding: 0 20px;
+    }
+    .hero-grid {
+        grid-template-columns: 1fr;
+        gap: 36px;
+    }
+    .hero-desc {
+        max-width: 100%;
+    }
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.4rem;
+        letter-spacing: -1px;
+    }
+    h2 {
+        font-size: 1.8rem;
+        letter-spacing: -0.8px;
+    }
+    .hero {
+        padding: 100px 0 60px;
+    }
+    .hero-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    .hero-actions .btn-primary,
+    .hero-actions .btn-secondary {
+        width: 100%;
+    }
+    .hero-stats {
+        flex-wrap: wrap;
+        gap: 24px;
+    }
+    .stat-number {
+        font-size: 2.5rem;
+    }
+
+    /* Mobile Navigation Drawer */
+    .mobile-menu-btn {
+        display: flex;
+    }
+    .nav-links {
+        position: fixed;
+        top: 64px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(10, 10, 10, 0.98);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        flex-direction: column;
+        align-items: stretch;
+        padding: 32px 24px;
+        gap: 16px;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        border-top: 1px solid var(--colors-hairline);
+        overflow-y: auto;
+    }
+    .nav-links.active {
+        transform: translateX(0);
+    }
+    .nav-links a {
+        font-size: 1.05rem;
+        padding: 12px 16px;
+        border-radius: var(--rounded-md);
+        background-color: var(--colors-surface-card);
+        border: 1px solid var(--colors-hairline);
+    }
+    .nav-links .btn-primary {
+        text-align: center;
+        justify-content: center;
+        background-color: var(--colors-primary);
+        color: var(--colors-on-primary);
+    }
+
+    .upload-grid {
         grid-template-columns: 1fr;
     }
-    h1 { font-size: 2.5rem; }
-    h2 { font-size: 2rem; }
-    .nav-links { display: none; }
+    .upload-dropzone {
+        padding: 32px 16px;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .metrics-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .table-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    table {
+        min-width: 550px;
+    }
+
+    .footer-inner {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    .badge-yellow {
+        display: none;
+    }
+    .camera-screen {
+        height: 220px;
+    }
+    .stat-number {
+        font-size: 2.2rem;
+    }
+    .surface-yellow-card {
+        padding: 32px 20px;
+    }
 }

@@ -14,23 +14,29 @@ import config
 
 
 class CentroidTracker:
-    """Simple centroid-based tracker to assign IDs and track speeds."""
+    """Simple centroid-based tracker to assign IDs and track speeds & trajectories."""
 
     def __init__(self, max_disappeared=30):
         self.next_id = 0
         self.objects = {}         # id -> centroid
         self.disappeared = {}     # id -> frames missing
-        self.history = defaultdict(lambda: deque(maxlen=10))  # id -> speed history
+        self.history = defaultdict(lambda: deque(maxlen=10))      # id -> speed history
+        self.pos_history = defaultdict(lambda: deque(maxlen=10))  # id -> position (cx, cy) history
         self.max_disappeared = max_disappeared
 
     def register(self, centroid):
         self.objects[self.next_id] = centroid
         self.disappeared[self.next_id] = 0
+        self.pos_history[self.next_id].append(centroid)
         self.next_id += 1
 
     def deregister(self, obj_id):
         del self.objects[obj_id]
         del self.disappeared[obj_id]
+        if obj_id in self.history:
+            del self.history[obj_id]
+        if obj_id in self.pos_history:
+            del self.pos_history[obj_id]
 
     def update(self, detections):
         """
@@ -69,6 +75,7 @@ class CentroidTracker:
                 curr = detections[col]
                 speed = math.dist(prev, curr)
                 self.history[obj_id].append(speed)
+                self.pos_history[obj_id].append(curr)
                 self.objects[obj_id] = curr
                 self.disappeared[obj_id] = 0
                 used_rows.add(row)
@@ -200,26 +207,101 @@ class EmergencyDetector:
         # -------------------------------------------------------
         r = rules["ROAD_ACCIDENT"]
         if r["enabled"] and not self._is_on_cooldown("ROAD_ACCIDENT"):
-            for v_id, v_speed_hist in self.vehicle_tracker.history.items():
-                if len(v_speed_hist) >= 3:
-                    speeds = list(v_speed_hist)
-                    drop = max(speeds[:-1]) - speeds[-1]
-                    if drop >= r["speed_drop_threshold"]:
-                        # Check overlap with another vehicle
-                        if len(vehicle_boxes) >= 2:
-                            for i in range(len(vehicle_boxes)):
-                                for j in range(i + 1, len(vehicle_boxes)):
-                                    iou = self._iou(vehicle_boxes[i][:4], vehicle_boxes[j][:4])
-                                    conf_avg = (vehicle_boxes[i][4] + vehicle_boxes[j][4]) / 2
-                                    if iou >= r["bounding_box_overlap"] and conf_avg >= r["min_confidence"]:
-                                        self._trigger("ROAD_ACCIDENT")
-                                        alerts.append({
-                                            "type": "ROAD_ACCIDENT",
-                                            "confidence": round(conf_avg, 2),
-                                            "description": f"Collision detected — speed drop {drop:.1f}px/f, IoU={iou:.2f}"
-                                        })
-                                        cv2.putText(annotated, "⚠ ACCIDENT", (20, 60),
-                                                    cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
+            accident_detected = False
+            acc_reason = ""
+            acc_conf = 0.0
+
+            # (A) Multi-Vehicle Collision (IoU + Speed drop)
+            if len(vehicle_boxes) >= 2:
+                for i in range(len(vehicle_boxes)):
+                    for j in range(i + 1, len(vehicle_boxes)):
+                        iou = self._iou(vehicle_boxes[i][:4], vehicle_boxes[j][:4])
+                        conf_avg = (vehicle_boxes[i][4] + vehicle_boxes[j][4]) / 2
+
+                        v1_speed_hist = list(self.vehicle_tracker.history.get(i, []))
+                        v2_speed_hist = list(self.vehicle_tracker.history.get(j, []))
+                        max_drop = 0.0
+                        if len(v1_speed_hist) >= 2:
+                            max_drop = max(max_drop, max(v1_speed_hist[:-1]) - v1_speed_hist[-1])
+                        if len(v2_speed_hist) >= 2:
+                            max_drop = max(max_drop, max(v2_speed_hist[:-1]) - v2_speed_hist[-1])
+
+                        if (iou >= r["bounding_box_overlap"] or max_drop >= r["speed_drop_threshold"]) and conf_avg >= r["min_confidence"]:
+                            accident_detected = True
+                            acc_reason = f"Vehicle collision — IoU={iou:.2f}, speed drop={max_drop:.1f}px/f"
+                            acc_conf = conf_avg
+                            break
+                    if accident_detected:
+                        break
+
+            # (B) Single-Vehicle High Deceleration Impact (Collision with barrier/pole)
+            if not accident_detected:
+                for v_id, v_speed_hist in self.vehicle_tracker.history.items():
+                    if len(v_speed_hist) >= 3:
+                        speeds = list(v_speed_hist)
+                        drop = max(speeds[:-1]) - speeds[-1]
+                        if drop >= r["single_vehicle_decel"]:
+                            accident_detected = True
+                            acc_reason = f"Single-vehicle impact — sudden deceleration drop {drop:.1f}px/f"
+                            acc_conf = r["min_confidence"] + 0.10
+                            break
+
+            # (C) Vehicle Rollover / Overturned Aspect Ratio Anomaly
+            if not accident_detected and vehicle_boxes:
+                for vb in vehicle_boxes:
+                    vw = vb[2] - vb[0]
+                    vh = vb[3] - vb[1]
+                    if vh > 0:
+                        ar = vw / vh
+                        if (ar < r["rollover_aspect_min"] or ar > r["rollover_aspect_max"]) and vb[4] >= r["min_confidence"]:
+                            accident_detected = True
+                            acc_reason = f"Vehicle rollover detected — aspect ratio anomaly (w/h={ar:.2f})"
+                            acc_conf = vb[4]
+                            break
+
+            # (D) Angular Trajectory Spin-out
+            if not accident_detected:
+                for v_id, pos_hist in self.vehicle_tracker.pos_history.items():
+                    if len(pos_hist) >= 4:
+                        p = list(pos_hist)
+                        v1 = (p[-2][0] - p[-4][0], p[-2][1] - p[-4][1])
+                        v2 = (p[-1][0] - p[-2][0], p[-1][1] - p[-2][1])
+                        mag1 = math.hypot(v1[0], v1[1])
+                        mag2 = math.hypot(v2[0], v2[1])
+                        if mag1 > 5.0 and mag2 > 2.0:
+                            dot = (v1[0] * v2[0] + v1[1] * v2[1]) / (mag1 * mag2)
+                            dot = max(-1.0, min(1.0, dot))
+                            angle_deg = math.degrees(math.acos(dot))
+                            if angle_deg >= r["trajectory_angle_shift"]:
+                                accident_detected = True
+                                acc_reason = f"Vehicle spin-out detected — trajectory deflection ({angle_deg:.1f}°)"
+                                acc_conf = r["min_confidence"] + 0.08
+                                break
+
+            # (E) Vehicle-Pedestrian Impact Zone
+            if not accident_detected and vehicle_boxes and person_boxes:
+                for vb in vehicle_boxes:
+                    vcx, vcy = (vb[0] + vb[2]) / 2, (vb[1] + vb[3]) / 2
+                    for pb in person_boxes:
+                        pcx, pcy = (pb[0] + pb[2]) / 2, (pb[1] + pb[3]) / 2
+                        dist = math.dist((vcx, vcy), (pcx, pcy))
+                        if dist <= r["pedestrian_collision_dist"]:
+                            accident_detected = True
+                            acc_reason = f"Pedestrian-vehicle impact — proximity {dist:.1f}px"
+                            acc_conf = max(vb[4], pb[4])
+                            break
+                    if accident_detected:
+                        break
+
+            if accident_detected:
+                self._trigger("ROAD_ACCIDENT")
+                alerts.append({
+                    "type": "ROAD_ACCIDENT",
+                    "confidence": round(min(0.99, float(acc_conf)), 2),
+                    "description": acc_reason
+                })
+                cv2.putText(annotated, "⚠ ACCIDENT", (20, 60),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
 
         # -------------------------------------------------------
         # 2. TRAFFIC JAM

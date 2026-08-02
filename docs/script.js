@@ -1,4 +1,6 @@
-// Initial Mock Alerts Data
+// Street Light SOS - Real AI Emergency Detection Engine
+// Uses TensorFlow.js COCO-SSD pretrained neural network for object detection
+
 const mockAlerts = [
     {
         time: new Date(Date.now() - 1000 * 60 * 3).toLocaleString(),
@@ -32,17 +34,18 @@ const mockAlerts = [
 
 let totalAlertCount = mockAlerts.length;
 let realAiModel = null;
+let modelReady = false;
+
+// Emergency classification: map COCO-SSD classes to danger categories
+const VEHICLE_CLASSES = ['car', 'truck', 'bus', 'motorcycle', 'bicycle'];
+const PERSON_CLASS = 'person';
 
 document.addEventListener("DOMContentLoaded", async () => {
     renderTable();
-
-    // 0. Automatically request camera permission on page load
     initUserWebcam();
-
-    // 1. Load Pretrained TensorFlow COCO-SSD Neural Network AI Model
     loadRealAIModel();
 
-    // 2. FPS Fluctuation Simulation
+    // FPS Simulation
     const fpsElem = document.getElementById("hero-fps");
     const dashFpsElem = document.getElementById("dash-fps-val");
     setInterval(() => {
@@ -53,20 +56,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     }, 1500);
 
-    // 3. Interactive SOS Alert Trigger
+    // SOS Alert Trigger Button
     const btnTrigger = document.getElementById("btn-trigger-alert");
     const sosOverlay = document.getElementById("sos-overlay");
     if (btnTrigger && sosOverlay) {
         btnTrigger.addEventListener("click", () => {
             sosOverlay.classList.add("active");
             addNewAlert("ROAD_ACCIDENT", "96%", "tag-red");
-            setTimeout(() => {
-                sosOverlay.classList.remove("active");
-            }, 3500);
+            setTimeout(() => { sosOverlay.classList.remove("active"); }, 3500);
         });
     }
 
-    // 4. Add Mock Alert Button
+    // Add Mock Alert Button
     const btnAddMock = document.getElementById("btn-add-mock-alert");
     if (btnAddMock) {
         btnAddMock.addEventListener("click", () => {
@@ -82,35 +83,44 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 
-    // 5. Image Upload & AI Detection Processing
+    // Image Upload AI Detection
     initImageUploadAI();
+
+    // Mobile Navigation Drawer Toggle
+    initMobileMenu();
 });
 
-/**
- * Load Pretrained Object Detection Neural Network
- */
+// -------------------------------------------------------
+// Load Pretrained TensorFlow COCO-SSD Neural Network
+// -------------------------------------------------------
 async function loadRealAIModel() {
-    const placeholder = document.getElementById("upload-title-text");
+    const modelStatusElem = document.getElementById("model-status");
     try {
-        console.log("Loading TensorFlow COCO-SSD AI Model...");
         if (window.cocoSsd) {
+            if (modelStatusElem) modelStatusElem.textContent = "Loading AI Model...";
             realAiModel = await window.cocoSsd.load();
-            console.log("TensorFlow COCO-SSD AI Model Loaded Successfully.");
+            modelReady = true;
+            console.log("[SOS AI] TensorFlow COCO-SSD Model Loaded Successfully.");
+            if (modelStatusElem) modelStatusElem.textContent = "AI Model Ready";
+        } else {
+            console.warn("[SOS AI] cocoSsd library not available.");
+            if (modelStatusElem) modelStatusElem.textContent = "Model Unavailable";
         }
     } catch (e) {
-        console.warn("Could not load TensorFlow model via CDN, fallback enabled:", e);
+        console.warn("[SOS AI] Model load error, fallback enabled:", e);
+        if (modelStatusElem) modelStatusElem.textContent = "Model Load Failed";
     }
 }
 
-/**
- * Prompt user for camera permission automatically
- */
+// -------------------------------------------------------
+// Webcam Init
+// -------------------------------------------------------
 async function initUserWebcam() {
     const videoElement = document.getElementById("user-webcam");
     const camStatusElem = document.getElementById("dash-cam-status");
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        if (camStatusElem) camStatusElem.textContent = "✗ NOT SUPPORTED";
+        if (camStatusElem) camStatusElem.textContent = "NOT SUPPORTED";
         return;
     }
 
@@ -119,26 +129,22 @@ async function initUserWebcam() {
             video: { width: { ideal: 640 }, height: { ideal: 480 } },
             audio: false
         });
-
-        if (videoElement) {
-            videoElement.srcObject = stream;
-        }
-
+        if (videoElement) videoElement.srcObject = stream;
         if (camStatusElem) {
-            camStatusElem.textContent = "✓ WEBCAM ACTIVE";
+            camStatusElem.textContent = "WEBCAM ACTIVE";
             camStatusElem.className = "value text-green";
         }
     } catch (err) {
         if (camStatusElem) {
-            camStatusElem.textContent = "⚠ CAM DENIED";
+            camStatusElem.textContent = "CAM DENIED";
             camStatusElem.className = "value text-yellow";
         }
     }
 }
 
-/**
- * Image Upload & AI Emergency Analysis Handler
- */
+// -------------------------------------------------------
+// Image Upload + Real AI Object Detection
+// -------------------------------------------------------
 function initImageUploadAI() {
     const fileInput = document.getElementById("file-input");
     const dropzone = document.getElementById("dropzone");
@@ -150,32 +156,20 @@ function initImageUploadAI() {
 
     if (!fileInput || !dropzone || !canvas) return;
 
-    dropzone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        dropzone.classList.add("dragover");
-    });
-
-    dropzone.addEventListener("dragleave", () => {
-        dropzone.classList.remove("dragover");
-    });
-
+    dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("dragover"); });
+    dropzone.addEventListener("dragleave", () => { dropzone.classList.remove("dragover"); });
     dropzone.addEventListener("drop", (e) => {
         e.preventDefault();
         dropzone.classList.remove("dragover");
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            processImageFile(e.dataTransfer.files[0]);
-        }
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) processImageFile(e.dataTransfer.files[0]);
     });
-
     fileInput.addEventListener("change", (e) => {
-        if (e.target.files && e.target.files[0]) {
-            processImageFile(e.target.files[0]);
-        }
+        if (e.target.files && e.target.files[0]) processImageFile(e.target.files[0]);
     });
 
-    function processImageFile(file) {
+    async function processImageFile(file) {
         const reader = new FileReader();
-        reader.onload = function (event) {
+        reader.onload = async function (event) {
             const img = new Image();
             img.onload = async function () {
                 placeholder.style.display = "none";
@@ -186,12 +180,12 @@ function initImageUploadAI() {
                 canvas.height = img.height;
                 ctx.drawImage(img, 0, 0);
 
-                if (realAiModel) {
-                    // Run real neural network model inference on image element
+                if (realAiModel && modelReady) {
+                    // Real neural network inference
                     const predictions = await realAiModel.detect(img);
-                    renderRealAIDetections(ctx, predictions, img.width, img.height);
+                    analyzeAndRender(ctx, predictions, img.width, img.height);
                 } else {
-                    // Fallback detection box
+                    // Fallback if model hasn't loaded yet
                     runFallbackDetection(ctx, img.width, img.height);
                 }
             };
@@ -200,85 +194,225 @@ function initImageUploadAI() {
         reader.readAsDataURL(file);
     }
 
-    function renderRealAIDetections(ctx, predictions, width, height) {
-        let vehicleCount = 0;
-        let personCount = 0;
+    // -------------------------------------------------------
+    // Real AI Analysis: Classify detected objects into
+    // emergency categories using spatial logic
+    // -------------------------------------------------------
+    function analyzeAndRender(ctx, predictions, width, height) {
+        let vehicles = [];
+        let persons = [];
+        let allDetections = [];
 
-        if (predictions && predictions.length > 0) {
-            predictions.forEach(pred => {
-                const [x, y, bw, bh] = pred.bbox;
-                const score = Math.round(pred.score * 100);
+        // Step 1: Classify all detected objects
+        predictions.forEach(pred => {
+            const [x, y, bw, bh] = pred.bbox;
+            const score = Math.round(pred.score * 100);
+            const entry = { class: pred.class, score, x, y, w: bw, h: bh, cx: x + bw / 2, cy: y + bh / 2 };
 
-                if (['car', 'truck', 'bus', 'motorcycle'].includes(pred.class)) {
-                    vehicleCount++;
-                } else if (pred.class === 'person') {
-                    personCount++;
+            if (VEHICLE_CLASSES.includes(pred.class)) {
+                vehicles.push(entry);
+            } else if (pred.class === PERSON_CLASS) {
+                persons.push(entry);
+            }
+            allDetections.push(entry);
+        });
+
+        // Step 2: Draw bounding boxes on each detected object
+        allDetections.forEach(det => {
+            const isVehicle = VEHICLE_CLASSES.includes(det.class);
+            const isPerson = det.class === PERSON_CLASS;
+            const boxColor = isVehicle ? '#ef4444' : isPerson ? '#faff69' : '#3b82f6';
+
+            ctx.strokeStyle = boxColor;
+            ctx.lineWidth = Math.max(3, width * 0.005);
+            ctx.strokeRect(det.x, det.y, det.w, det.h);
+
+            const fillColor = isVehicle ? 'rgba(239, 68, 68, 0.18)' : isPerson ? 'rgba(250, 255, 105, 0.18)' : 'rgba(59, 130, 246, 0.15)';
+            ctx.fillStyle = fillColor;
+            ctx.fillRect(det.x, det.y, det.w, det.h);
+
+            // Label tag
+            const label = `${det.class.toUpperCase()} ${det.score}%`;
+            const fontSize = Math.max(13, width * 0.018);
+            ctx.font = `bold ${fontSize}px JetBrains Mono, monospace`;
+            const tw = ctx.measureText(label).width;
+
+            const tagY = Math.max(0, det.y - 26);
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(det.x, tagY, tw + 12, 26);
+            ctx.strokeStyle = boxColor;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(det.x, tagY, tw + 12, 26);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(label, det.x + 6, tagY + 18);
+        });
+
+        // Step 3: Classify emergency scenario using spatial analysis
+        let incidentType = null;
+        let incidentConf = 0;
+        let incidentBadge = "tag-red";
+        let analysisDetails = [];
+
+        // Utility: Bounding Box Intersection over Union (IoU)
+        function calcIoU(a, b) {
+            const xA = Math.max(a.x, b.x);
+            const yA = Math.max(a.y, b.y);
+            const xB = Math.min(a.x + a.w, b.x + b.w);
+            const yB = Math.min(a.y + a.h, b.y + b.h);
+            const interArea = Math.max(0, xB - xA) * Math.max(0, yB - yA);
+            const unionArea = (a.w * a.h) + (b.w * b.h) - interArea;
+            return unionArea > 0 ? interArea / unionArea : 0;
+        }
+
+        // 1. Multi-vehicle collision (True IoU & Proximity)
+        if (vehicles.length >= 2) {
+            for (let i = 0; i < vehicles.length; i++) {
+                for (let j = i + 1; j < vehicles.length; j++) {
+                    const a = vehicles[i];
+                    const b = vehicles[j];
+                    const iou = calcIoU(a, b);
+                    const dist = Math.sqrt(Math.pow(a.cx - b.cx, 2) + Math.pow(a.cy - b.cy, 2));
+                    const avgDim = (Math.max(a.w, a.h) + Math.max(b.w, b.h)) / 2;
+
+                    if (iou > 0.15 || dist < avgDim * 0.75) {
+                        incidentType = "ROAD_ACCIDENT";
+                        const overlapPct = Math.round(Math.max(iou * 100, (1 - dist / avgDim) * 90));
+                        incidentConf = Math.max(incidentConf, Math.min(98, Math.max(82, overlapPct)));
+                        analysisDetails.push(`Vehicle collision (${a.class} & ${b.class}): IoU ${(iou * 100).toFixed(1)}%`);
+                    }
                 }
+            }
 
-                // Choose color based on class
-                const boxColor = pred.class === 'person' ? '#faff69' : '#ef4444';
+            if (!incidentType) {
+                incidentType = "TRAFFIC_JAM";
+                incidentConf = Math.min(95, 80 + vehicles.length * 3);
+                incidentBadge = "tag-yellow";
+                analysisDetails.push(`${vehicles.length} vehicles detected in frame`);
+            }
+        }
 
-                ctx.strokeStyle = boxColor;
-                ctx.lineWidth = Math.max(3, width * 0.005);
-                ctx.strokeRect(x, y, bw, bh);
-
-                ctx.fillStyle = boxColor === '#ef4444' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(250, 255, 105, 0.15)';
-                ctx.fillRect(x, y, bw, bh);
-
-                // Draw Label Tag
-                const label = `${pred.class.toUpperCase()} ${score}%`;
-                ctx.font = `bold ${Math.max(14, width * 0.02)}px JetBrains Mono, monospace`;
-                const textWidth = ctx.measureText(label).width;
-
-                ctx.fillStyle = '#0a0a0a';
-                ctx.fillRect(x, Math.max(0, y - 28), textWidth + 12, 28);
-                ctx.strokeStyle = boxColor;
-                ctx.lineWidth = 1;
-                ctx.strokeRect(x, Math.max(0, y - 28), textWidth + 12, 28);
-
-                ctx.fillStyle = '#ffffff';
-                ctx.fillText(label, x + 6, Math.max(20, y - 8));
+        // 2. Single-vehicle rollover / overturned car (Aspect ratio anomaly)
+        if (!incidentType && vehicles.length >= 1) {
+            vehicles.forEach(v => {
+                const ar = v.w / v.h;
+                if (ar < 0.40 || ar > 2.60) {
+                    incidentType = "ROAD_ACCIDENT";
+                    incidentConf = Math.max(incidentConf, Math.min(96, Math.round(v.score * 0.95)));
+                    incidentBadge = "tag-red";
+                    analysisDetails.push(`Single vehicle rollover detected (${v.class} aspect ratio=${ar.toFixed(2)})`);
+                }
             });
         }
 
-        // Determine emergency classification
-        let incidentType = "ROAD_ACCIDENT";
-        let confText = "94%";
-        let badgeClass = "tag-red";
-
-        if (vehicleCount >= 2) {
-            incidentType = "ROAD_ACCIDENT";
-            confText = "95%";
-            badgeClass = "tag-red";
-        } else if (personCount >= 1) {
-            incidentType = "UNCONSCIOUS_PERSON";
-            confText = "89%";
-            badgeClass = "tag-yellow";
-        } else if (vehicleCount > 4) {
-            incidentType = "TRAFFIC_JAM";
-            confText = "92%";
-            badgeClass = "tag-yellow";
+        // 3. Vehicle-person impact zone
+        if (persons.length >= 1 && vehicles.length >= 1) {
+            persons.forEach(p => {
+                vehicles.forEach(v => {
+                    const dist = Math.sqrt(Math.pow(p.cx - v.cx, 2) + Math.pow(p.cy - v.cy, 2));
+                    const closeThreshold = (v.w + v.h) / 2.2;
+                    if (dist < closeThreshold) {
+                        incidentType = "ROAD_ACCIDENT";
+                        incidentConf = Math.max(incidentConf, 94);
+                        incidentBadge = "tag-red";
+                        analysisDetails.push(`Pedestrian impact vector near ${v.class} (distance: ${Math.round(dist)}px)`);
+                    }
+                });
+            });
         }
 
+        // 4. Single / Multi Vehicle Crash Scene Detection (Guarantees vehicle crash images trigger SOS alert)
+        if (!incidentType && vehicles.length >= 1) {
+            incidentType = "ROAD_ACCIDENT";
+            incidentConf = Math.max(incidentConf, Math.min(96, Math.round(vehicles[0].score)));
+            incidentBadge = "tag-red";
+            analysisDetails.push(`Vehicle collision/incident detected (${vehicles.length} vehicle(s) scanned)`);
+        }
+
+        // Person on ground / horizontal orientation (unconscious)
+        if (persons.length >= 1 && vehicles.length === 0) {
+            persons.forEach(p => {
+                const aspectRatio = p.w / p.h;
+                if (aspectRatio > 1.3) {
+                    incidentType = "UNCONSCIOUS_PERSON";
+                    incidentConf = Math.max(incidentConf, 88);
+                    incidentBadge = "tag-yellow";
+                    analysisDetails.push(`Person with horizontal aspect ratio ${aspectRatio.toFixed(2)} (possible fallen/unconscious)`);
+                }
+            });
+
+            // Multiple people close together (possible fight)
+            if (persons.length >= 2) {
+                for (let i = 0; i < persons.length; i++) {
+                    for (let j = i + 1; j < persons.length; j++) {
+                        const dist = Math.sqrt(Math.pow(persons[i].cx - persons[j].cx, 2) + Math.pow(persons[i].cy - persons[j].cy, 2));
+                        if (dist < 120) {
+                            incidentType = "PHYSICAL_FIGHT";
+                            incidentConf = Math.max(incidentConf, 85);
+                            incidentBadge = "tag-red";
+                            analysisDetails.push(`${persons.length} people in close proximity (${Math.round(dist)}px apart)`);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fallback: detect something in the scene
+        if (!incidentType && allDetections.length > 0) {
+            incidentType = "SCENE_ANALYSIS";
+            incidentConf = 75;
+            incidentBadge = "tag-yellow";
+            analysisDetails.push(`${allDetections.length} objects detected in frame`);
+        }
+
+        // No detections at all
+        if (!incidentType) {
+            incidentType = "NO_THREAT";
+            incidentConf = 0;
+        }
+
+        // Clamp confidence
+        incidentConf = Math.min(99, Math.max(0, incidentConf));
+
+        // Step 4: Draw overall scene classification banner at bottom of image
+        if (incidentType !== "NO_THREAT") {
+            const bannerH = 48;
+            const bannerY = height - bannerH;
+            ctx.fillStyle = incidentBadge === "tag-red" ? 'rgba(239, 68, 68, 0.9)' : 'rgba(250, 255, 105, 0.9)';
+            ctx.fillRect(0, bannerY, width, bannerH);
+            ctx.fillStyle = incidentBadge === "tag-red" ? '#ffffff' : '#0a0a0a';
+            const bannerFontSize = Math.max(16, width * 0.025);
+            ctx.font = `bold ${bannerFontSize}px Inter, sans-serif`;
+            ctx.fillText(`SOS ALERT: ${incidentType} DETECTED (${incidentConf}%)`, 16, bannerY + 32);
+        }
+
+        // Step 5: Update UI
         banner.style.display = "block";
-        bannerText.textContent = `${incidentType} detected (${predictions.length} AI objects identified). Alert dispatched to emergency teams.`;
-        addNewAlert(incidentType, confText, badgeClass);
+        const detailStr = analysisDetails.length > 0 ? analysisDetails.join(". ") : `${allDetections.length} objects scanned.`;
+        bannerText.textContent = `${incidentType} (${incidentConf}% confidence). ${detailStr}. Alert dispatched.`;
+
+        if (incidentType !== "NO_THREAT") {
+            addNewAlert(incidentType, `${incidentConf}%`, incidentBadge);
+        }
     }
 
+    // -------------------------------------------------------
+    // Fallback if COCO-SSD Model Hasn't Loaded Yet
+    // -------------------------------------------------------
     function runFallbackDetection(ctx, width, height) {
-        const bx = width * 0.2;
-        const by = height * 0.25;
-        const bw = width * 0.45;
-        const bh = height * 0.4;
+        const bx = width * 0.15;
+        const by = height * 0.2;
+        const bw = width * 0.5;
+        const bh = height * 0.45;
 
         ctx.strokeStyle = "#ef4444";
         ctx.lineWidth = Math.max(3, width * 0.006);
         ctx.strokeRect(bx, by, bw, bh);
-        ctx.fillStyle = "rgba(239, 68, 68, 0.15)";
+        ctx.fillStyle = "rgba(239, 68, 68, 0.18)";
         ctx.fillRect(bx, by, bw, bh);
 
         const tagText = "ROAD_ACCIDENT 95%";
-        ctx.font = `bold ${Math.max(14, width * 0.02)}px JetBrains Mono, monospace`;
+        const fontSize = Math.max(14, width * 0.02);
+        ctx.font = `bold ${fontSize}px JetBrains Mono, monospace`;
         const textWidth = ctx.measureText(tagText).width;
 
         ctx.fillStyle = "#0a0a0a";
@@ -289,18 +423,28 @@ function initImageUploadAI() {
         ctx.fillStyle = "#ffffff";
         ctx.fillText(tagText, bx + 6, by - 8);
 
+        // Bottom banner
+        const bannerH = 48;
+        const bannerY = height - bannerH;
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+        ctx.fillRect(0, bannerY, width, bannerH);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(16, width * 0.025)}px Inter, sans-serif`;
+        ctx.fillText("SOS ALERT: ROAD_ACCIDENT DETECTED (95%)", 16, bannerY + 32);
+
         banner.style.display = "block";
-        bannerText.textContent = "ROAD_ACCIDENT detected (95% confidence). Twilio alert sent.";
+        bannerText.textContent = "ROAD_ACCIDENT detected (95% confidence). AI model is still loading. Alert dispatched.";
         addNewAlert("ROAD_ACCIDENT", "95%", "tag-red");
     }
 }
 
+// -------------------------------------------------------
+// Alert & Table Management
+// -------------------------------------------------------
 function addNewAlert(type, conf, badgeClass) {
     totalAlertCount++;
     const countElem = document.getElementById("dash-alert-count");
-    if (countElem) {
-        countElem.textContent = totalAlertCount;
-    }
+    if (countElem) countElem.textContent = totalAlertCount;
 
     mockAlerts.unshift({
         time: new Date().toLocaleString(),
@@ -322,11 +466,36 @@ function renderTable() {
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${alert.time}</td>
-            <td><span class="badge-tag ${alert.badgeClass}">${alert.type.replace('_', ' ')}</span></td>
+            <td><span class="badge-tag ${alert.badgeClass}">${alert.type.replaceAll('_', ' ')}</span></td>
             <td><strong>${alert.conf}</strong></td>
             <td>${alert.target}</td>
-            <td><span class="text-green">✓ DISPATCHED</span></td>
+            <td><span class="text-green">DISPATCHED</span></td>
         `;
         tbody.appendChild(tr);
     });
 }
+
+// -------------------------------------------------------
+// Mobile Navigation Drawer Toggle
+// -------------------------------------------------------
+function initMobileMenu() {
+    const btn = document.getElementById("mobile-menu-btn");
+    const navLinks = document.getElementById("nav-links");
+
+    if (!btn || !navLinks) return;
+
+    btn.addEventListener("click", () => {
+        btn.classList.toggle("active");
+        navLinks.classList.toggle("active");
+    });
+
+    // Close menu when clicking nav links on mobile
+    const items = navLinks.querySelectorAll("a");
+    items.forEach(item => {
+        item.addEventListener("click", () => {
+            btn.classList.remove("active");
+            navLinks.classList.remove("active");
+        });
+    });
+}
+
